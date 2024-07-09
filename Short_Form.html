@@ -1,0 +1,70 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification de Vidéo Aléatoire</title>
+</head>
+<body>
+    <h1>Notifications de vidéos de la playlist</h1>
+    <p>Cette page envoie une notification toutes les x minutes avec une vidéo aléatoire de votre playlist YouTube.</p>
+    <label for="interval">Intervalle en minutes:</label>
+    <input type="number" id="interval" name="interval" min="1" value="60">
+    <button onclick="startNotifications()">Démarrer les notifications</button>
+    <p id="status"></p>
+    <script>
+        const PLAYLIST_ID = 'PLZZ0vovEVz0c8p4jYd8qtM5wBjlO-uF2E';
+        const API_KEY = 'AIzaSyBELBWrrM8pNhpxSoBQTV_wdj8-5x7aI84';
+
+        async function fetchVideos() {
+            const response = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${PLAYLIST_ID}&key=${API_KEY}`);
+            const data = await response.json();
+            return data.items;
+        }
+
+        function getRandomVideo(videos) {
+            const randomIndex = Math.floor(Math.random() * videos.length);
+            return videos[randomIndex];
+        }
+
+        function showNotification(video) {
+            const videoTitle = video.snippet.title;
+            const videoUrl = `https://www.youtube.com/watch?v=${video.snippet.resourceId.videoId}`;
+
+            if (Notification.permission === 'granted') {
+                const notification = new Notification(videoTitle, {
+                    body: 'Cliquez pour regarder la vidéo',
+                    icon: video.snippet.thumbnails.default.url,
+                    requireInteraction: true
+                });
+
+                notification.onclick = () => {
+                    window.open(videoUrl, '_blank');
+                };
+            }
+        }
+
+        async function startNotifications() {
+            const intervalMinutes = document.getElementById('interval').value;
+            if (Notification.permission !== 'granted') {
+                await Notification.requestPermission();
+            }
+
+            if (Notification.permission === 'granted') {
+                const videos = await fetchVideos();
+                showNotification(getRandomVideo(videos));
+
+                setInterval(async () => {
+                    const randomVideo = getRandomVideo(videos);
+                    showNotification(randomVideo);
+                }, intervalMinutes * 60 * 1000);
+
+                document.getElementById('status').innerText = 'Notifications activées. Attendez la première notification...';
+            } else {
+                alert('Vous devez permettre les notifications pour que cela fonctionne.');
+            }
+        }
+    </script>
+</body>
+</html>
